@@ -1,4 +1,5 @@
 """pytest-asyncio implementation."""
+
 import asyncio
 import contextlib
 import enum
@@ -113,8 +114,7 @@ def fixture(
         ]
     ] = ...,
     name: Optional[str] = ...,
-) -> FixtureFunction:
-    ...
+) -> FixtureFunction: ...
 
 
 @overload
@@ -131,8 +131,7 @@ def fixture(
         ]
     ] = ...,
     name: Optional[str] = None,
-) -> FixtureFunctionMarker:
-    ...
+) -> FixtureFunctionMarker: ...
 
 
 def fixture(
@@ -288,7 +287,7 @@ def _wrap_asyncgen(func: Callable[..., AsyncIterator[_R]]) -> Callable[..., _R]:
                     msg += "Yield only once."
                     raise ValueError(msg)
 
-            _loop_run_threadsafe(event_loop,async_finalizer())
+            _loop_run_threadsafe(event_loop, async_finalizer())
 
         result = _loop_run_threadsafe(event_loop, setup())
         request.addfinalizer(finalizer)
@@ -350,11 +349,17 @@ def _hypothesis_test_wraps_coroutine(function: Any) -> bool:
     return _is_coroutine(function.hypothesis.inner_test)
 
 
+def _get_event_loop_policy():
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        return asyncio.get_event_loop_policy()
+
+
 @pytest.hookimpl(trylast=True)
 def pytest_fixture_post_finalizer(fixturedef: FixtureDef, request: SubRequest) -> None:
     """Called after fixture teardown"""
     if fixturedef.argname == "event_loop":
-        policy = asyncio.get_event_loop_policy()
+        policy = _get_event_loop_policy()
         try:
             loop = policy.get_event_loop()
         except RuntimeError:
@@ -375,7 +380,7 @@ def pytest_fixture_setup(
     if fixturedef.argname == "event_loop":
         outcome = yield
         loop = outcome.get_result()
-        policy = asyncio.get_event_loop_policy()
+        policy = _get_event_loop_policy()
         try:
             old_loop = policy.get_event_loop()
             if old_loop is not loop:
@@ -505,7 +510,7 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
 @pytest.fixture
 def event_loop(request: "pytest.FixtureRequest") -> Iterator[asyncio.AbstractEventLoop]:
     """Create an instance of the default event loop for each test case."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
+    loop = _get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
 
