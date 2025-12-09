@@ -352,7 +352,11 @@ def _hypothesis_test_wraps_coroutine(function: Any) -> bool:
 
 def _get_event_loop_policy():
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
+        warnings.filterwarnings(
+            "ignore",
+            message="'asyncio.get_event_loop_policy' is deprecated",
+            category=DeprecationWarning,
+        )
         return asyncio.get_event_loop_policy()
 
 
